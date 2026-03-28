@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Игровая платформа | Мемори | Три в ряд | Дурак | Саймон</title>
+    <style>
+        * {
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            box-sizing: border-box;
+        }
+
+        /* Адаптивные переменные */
+        :root {
+            --border-radius-lg: 64px;
+            --border-radius-md: 48px;
+            --border-radius-sm: 24px;
+        }
+
+        @media (max-width: 768px) {
+            :root {
+                --border-radius-lg: 40px;
+                --border-radius-md: 32px;
+                --border-radius-sm: 20px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            :root {
+                --border-radius-lg: 32px;
+                --border-radius-md: 24px;
+                --border-radius-sm: 16px;
+            }
+        }
+
+        body {
+            background: linear-gradient(145deg, #1a2a3a 0%, #0f1a24 100%);
+            font-family: 'Segoe UI', 'Poppins', system-ui, -apple-system, 'Roboto', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 16px;
+        }
+
+        .game-hub {
+            max-width: 1200px;
+            width: 100%;
+            background: rgba(22, 34, 48, 0.85);
+            backdrop-filter: blur(10px);
+            border-radius: var(--border-radius-lg);
+            padding: clamp(16px, 4vw, 24px);
+            box-shadow: 0 25px 45px rgba(0,0,0,0.4), inset 0 1px 1px rgba(255,255,255,0.1);
+        }
+
+        .platform-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 24px;
+            border-bottom: 2px solid #ffd966;
+            padding-bottom: 12px;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: clamp(1.5rem, 6vw, 2rem);
+            background: linear-gradient(135deg, #FFE6B0, #FFB347);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .game-tabs {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .tab-btn {
+            background: #2e4158;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 40px;
+            font-weight: bold;
+            font-size: clamp(0.8rem, 3vw, 1rem);
+            cursor: pointer;
+            color: #cfdfed;
+            transition: all 0.2s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .tab-btn.active {
+            background: #f9b43a;
+            color: #1e2f3a;
+            box-shadow: 0 4px 12px rgba(249,180,58,0.4);
+        }
+
+        .tab-btn:active { transform: scale(0.96); }
+
+        .game-container {
+            background: #1e2f3c;
+            border-radius: var(--border-radius-md);
+            padding: clamp(12px, 3vw, 20px);
+            margin-top: 12px;
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.05), 0 12px 28px black;
+        }
+
+        .game-panel {
+            transition: opacity 0.2s ease;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .score-board {
+            display: flex;
+            justify-content: space-between;
+            background: #0f1a1f;
+            padding: 10px 16px;
+            border-radius: 60px;
+            margin-bottom: 20px;
+            color: #FFE3A4;
+            font-weight: bold;
+            font-size: clamp(0.9rem, 4vw, 1.1rem);
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .score-board span {
+            background: #2e4a33;
+            padding: 4px 16px;
+            border-radius: 30px;
+        }
+
+        /* Мемори */
+        .memory-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: clamp(8px, 2vw, 12px);
+            margin-bottom: 24px;
+        }
+
+        .card {
+            background: linear-gradient(135deg, #ffd966, #e6a017);
+            aspect-ratio: 1 / 1;
+            border-radius: var(--border-radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: clamp(1.5rem, 6vw, 2.2rem);
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 6px 0 #8b5a2b;
+            transition: all 0.1s ease;
+            transform: translateY(-2px);
+        }
+
+        .card.flipped, .card.matched {
+            background: white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            transform: scale(0.98);
+        }
+
+        .card.matched {
+            opacity: 0.6;
+            background: #b8d9a6;
+        }
+
+        .card:active { transform: scale(0.96); }
+
+        /* Три в ряд */
+        .match3-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: clamp(4px, 1.5vw, 8px);
+            background: #17252e;
+            padding: clamp(8px, 2vw, 16px);
+            border-radius: 32px;
+            margin-bottom: 20px;
+        }
+
+        .gem {
+            aspect-ratio: 1 / 1;
+            border-radius: clamp(10px, 3vw, 16px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: clamp(1.2rem, 5vw, 1.8rem);
+            font-weight: bold;
+            cursor: pointer;
+            background: #2c4b5e;
+            box-shadow: inset 0 -2px 0 rgba(0,0,0,0.2), 0 2px 6px rgba(0,0,0,0.3);
+            transition: all 0.1s;
+        }
+
+        .gem.selected {
+            box-shadow: 0 0 0 3px #ffdd88, 0 0 0 6px #f0a020;
+            transform: scale(1.02);
+        }
+
+        .gem:active { transform: scale(0.96); }
+
+        /* Саймон (Simon Says) */
+        .simon-game {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .simon-board {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            max-width: 400px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        .simon-btn {
+            aspect-ratio: 1 / 1;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.1s ease;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.3);
+            opacity: 0.85;
+        }
+
+        .simon-btn.active {
+            opacity: 1;
+            transform: scale(0.98);
+            filter: brightness(1.2);
+            box-shadow: 0 0 20px rgba(255,255,255,0.5);
+        }
+
+        .simon-btn:active {
+            transform: scale(0.95);
+        }
+
+        .color-red { background: linear-gradient(135deg, #e74c3c, #c0392b); }
+        .color-green { background: linear-gradient(135deg, #2ecc71, #27ae60); }
+        .color-blue { background: linear-gradient(135deg, #3498db, #2980b9); }
+        .color-yellow { background: linear-gradient(135deg, #f1c40f, #f39c12); }
+
+        .simon-controls {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-top: 10px;
+        }
+
+        .simon-info {
+            background: #0f1a1f;
+            padding: 12px 24px;
+            border-radius: 60px;
+            text-align: center;
+        }
+
+        .simon-level {
+            font-size: clamp(1.2rem, 5vw, 1.8rem);
+            font-weight: bold;
+            color: #ffd966;
+        }
+
+        .start-btn {
+            background: #f5a623;
+            border: none;
+            padding: 12px 32px;
+            border-radius: 60px;
+            font-weight: bold;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: 0.1s;
+        }
+
+        .start-btn:active { transform: scale(0.96); }
+
+        /* Дурак */
+        .fool-game {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .game-stats {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .trump-info, .deck-info {
+            background: linear-gradient(135deg, #f9b43a, #e67e22);
+            border-radius: 40px;
+            padding: 10px 20px;
+            text-align: center;
+            font-weight: bold;
+            font-size: clamp(0.9rem, 3.5vw, 1.1rem);
+            color: #1e2f3a;
+            flex: 1;
+        }
+
+        .trump-suit {
+            display: inline-block;
+            font-size: 1.3rem;
+            margin-left: 8px;
+            background: white;
+            padding: 2px 10px;
+            border-radius: 30px;
+        }
+
+        .player-area {
+            background: #0f1a1fcc;
+            border-radius: 28px;
+            padding: 16px;
+            backdrop-filter: blur(4px);
+        }
+
+        .player-title {
+            font-weight: bold;
+            margin-bottom: 12px;
+            color: #ffd966;
+            font-size: clamp(0.9rem, 3.5vw, 1.1rem);
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .cards-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: center;
+            min-height: 90px;
+        }
+
+        .playing-card {
+            background: linear-gradient(145deg, #fff, #f0f0f0);
+            border-radius: clamp(8px, 2vw, 12px);
+            padding: 10px 14px;
+            min-width: clamp(60px, 12vw, 75px);
+            text-align: center;
+            font-weight: bold;
+            font-size: clamp(1rem, 4vw, 1.2rem);
+            cursor: pointer;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.2);
+            color: #2c3e50;
+            border: 1px solid #ffd966;
+            transition: all 0.1s;
+        }
+
+        .playing-card.trump-card {
+            background: linear-gradient(145deg, #ffe6b0, #ffd966);
+            border: 2px solid #f9b43a;
+        }
+
+        .playing-card:active { transform: scale(0.95); }
+
+        .table-area {
+            background: #2a3a2e;
+            border-radius: 20px;
+            padding: 16px;
+            text-align: center;
+        }
+
+        .table-cards {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 12px 0;
+        }
+
+        .table-card {
+            background: #3a2a2a;
+            border-radius: 10px;
+            padding: 8px 12px;
+            min-width: 65px;
+            text-align: center;
+            font-size: 1.2rem;
+            font-weight: bold;
+            border: 2px solid #ffd966;
+            color: white;
+        }
+
+        .table-card.defended {
+            background: #2a5a2a;
+        }
+
+        .game-controls {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 12px;
+        }
+
+        .fool-btn {
+            background: #f5a623;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 40px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .fool-btn:active { transform: scale(0.96); }
+        .fool-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .reset-btn {
+            background: #f5a623;
+            border: none;
+            font-size: clamp(0.9rem, 4vw, 1.1rem);
+            font-weight: bold;
+            padding: 12px 24px;
+            border-radius: 60px;
+            width: 100%;
+            cursor: pointer;
+            color: #1e2f2c;
+            margin-top: 12px;
+        }
+
+        .reset-btn:active { transform: scale(0.97); }
+
+        .message-area {
+            text-align: center;
+            margin-top: 16px;
+            font-weight: bold;
+            background: #00000066;
+            border-radius: 40px;
+            padding: 10px;
+            color: #ffeaac;
+            font-size: clamp(0.8rem, 3.5vw, 1rem);
+        }
+
+        .progress-container {
+            background: #0f1a1f;
+            border-radius: 30px;
+            padding: 4px;
+            margin-top: 8px;
+            margin-bottom: 16px;
+        }
+
+        .progress-bar {
+            background: linear-gradient(90deg, #f5a623, #ffd966);
+            height: 12px;
+            border-radius: 30px;
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+
+        @media (max-width: 600px) {
+            .playing-card {
+                min-width: 55px;
+                padding: 8px 10px;
+                font-size: 0.9rem;
+            }
+            .table-card {
+                min-width: 55px;
+                font-size: 1rem;
+                padding: 6px 10px;
+            }
+            .simon-board {
+                gap: 12px;
+                max-width: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="game-hub">
+    <div class="platform-header">
+        <h1>🎮 Игровая арена</h1>
+        <div class="game-tabs">
+            <button class="tab-btn active" data-game="memory">🧠 Мемори</button>
+            <button class="tab-btn" data-game="match3">💎 Три в ряд</button>
+            <button class="tab-btn" data-game="simon">🎵 Саймон</button>
+            <button class="tab-btn" data-game="fool">🃏 Дурак</button>
+        </div>
+    </div>
+
+    <div class="game-container">
+        <!-- Мемори -->
+        <div id="memoryPanel" class="game-panel">
+            <div class="score-board">
+                <span>🎴 Пары: <span id="memoryPairs">0</span> / 8</span>
+                <span>✨ Ходы: <span id="memoryMoves">0</span></span>
+            </div>
+            <div id="memoryGrid" class="memory-grid"></div>
+            <button id="resetMemory" class="reset-btn">🔄 Новая игра</button>
+            <div id="memoryMsg" class="message-area">Найди все пары карточек!</div>
+        </div>
+
+        <!-- Три в ряд -->
+        <div id="match3Panel" class="game-panel hidden">
+            <div class="score-board">
+                <span>💎 Счёт: <span id="match3Score">0</span> / 1000</span>
+                <span>🎯 Цель: 1000 очков</span>
+            </div>
+            <div class="progress-container">
+                <div class="progress-bar" id="match3Progress" style="width: 0%"></div>
+            </div>
+            <div id="match3Grid" class="match3-grid"></div>
+            <button id="resetMatch3" class="reset-btn">🔄 Новая игра</button>
+            <div id="match3Msg" class="message-area">Меняй местами камни, собирай ряды из 3+! Цель: 1000 очков</div>
+        </div>
+
+        <!-- Саймон (Simon Says) -->
+        <div id="simonPanel" class="game-panel hidden">
+            <div class="simon-game">
+                <div class="simon-info">
+                    <div class="simon-level">Уровень: <span id="simonLevel">0</span></div>
+                    <div>🎵 Запомни последовательность и повтори!</div>
+                </div>
+                <div class="simon-board">
+                    <div class="simon-btn color-red" data-color="red"></div>
+                    <div class="simon-btn color-green" data-color="green"></div>
+                    <div class="simon-btn color-blue" data-color="blue"></div>
+                    <div class="simon-btn color-yellow" data-color="yellow"></div>
+                </div>
+                <div class="simon-controls">
+                    <button id="startSimon" class="start-btn">🎮 Начать игру</button>
+                </div>
+                <div id="simonMsg" class="message-area">Нажми "Начать игру", чтобы начать!</div>
+            </div>
+        </div>
+
+        <!-- Дурак -->
+        <div id="foolPanel" class="game-panel hidden">
+            <div class="fool-game">
+                <div class="game-stats">
+                    <div class="trump-info">🃏 КОЗЫРЬ: <span id="trumpSuit" class="trump-suit">♠</span></div>
+                    <div class="deck-info">📚 КОЛОДА: <span id="deckCount">24</span> карт</div>
+                </div>
+                <div class="player-area">
+                    <div class="player-title">👤 Ваши карты <span>📊 <span id="playerCount">0</span> карт</span></div>
+                    <div id="playerCards" class="cards-container"></div>
+                </div>
+                <div class="table-area">
+                    <div class="player-title">🎲 На столе</div>
+                    <div id="tableCards" class="table-cards"></div>
+                    <div class="game-controls">
+                        <button id="attackBtn" class="fool-btn">⚔️ Атаковать</button>
+                        <button id="defendBtn" class="fool-btn">🛡️ Защита</button>
+                        <button id="takeBtn" class="fool-btn">📥 Забрать</button>
+                    </div>
+                </div>
+                <div class="player-area">
+                    <div class="player-title">🤖 Компьютер <span>📊 <span id="computerCount">0</span> карт</span></div>
+                    <div id="computerCards" class="cards-container"></div>
+                </div>
+                <button id="resetFool" class="reset-btn">🔄 Новая игра</button>
+                <div id="foolMsg" class="message-area">Ваш ход! Выберите карту для атаки</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ==================== МЕМОРИ ====================
+    const emojis = ["🐶", "🐱", "🐭", "🐹", "🐰", "🦊", "🐻", "🐼"];
+    let memCards = [], memFlipped = null, memLock = false, memMoves = 0, memTimeout = null;
+
+    function initMemory() {
+        let deck = [];
+        for (let e of emojis) deck.push({ emoji: e, matched: false, flipped: false }, { emoji: e, matched: false, flipped: false });
+        for (let i = deck.length - 1; i > 0; i--) {
+            let j = Math.floor(Math.random() * (i + 1));
+            [deck[i], deck[j]] = [deck[j], deck[i]];
+        }
+        return deck;
+    }
+
+    function renderMemory() {
+        const grid = document.getElementById("memoryGrid");
+        grid.innerHTML = "";
+        memCards.forEach((card, i) => {
+            const div = document.createElement("div");
+            div.className = "card";
+            if (card.flipped || card.matched) div.classList.add("flipped");
+            if (card.matched) div.classList.add("matched");
+            div.textContent = (card.flipped || card.matched) ? card.emoji : "?";
+            div.onclick = () => onCardClick(i);
+            grid.appendChild(div);
+        });
+        const matched = memCards.filter(c => c.matched).length / 2;
+        document.getElementById("memoryPairs").innerText = matched;
+        document.getElementById("memoryMoves").innerText = memMoves;
+        if (matched === 8) document.getElementById("memoryMsg").innerText = "🎉 ПОБЕДА! Все пары найдены! 🎉";
+    }
+
+    function onCardClick(idx) {
+        if (memLock) return;
+        if (memCards[idx].matched || memCards[idx].flipped) return;
+        if (memFlipped === null) {
+            memCards[idx].flipped = true;
+            memFlipped = idx;
+            renderMemory();
+        } else if (memFlipped !== idx) {
+            memCards[idx].flipped = true;
+            memMoves++;
+            renderMemory();
+            if (memCards[memFlipped].emoji === memCards[idx].emoji) {
+                memCards[memFlipped].matched = true;
+                memCards[idx].matched = true;
+                memFlipped = null;
+                renderMemory();
+            } else {
+                memLock = true;
+                memTimeout = setTimeout(() => {
+                    memCards[memFlipped].flipped = false;
+                    memCards[idx].flipped = false;
+                    memFlipped = null;
+                    memLock = false;
+                    renderMemory();
+                }, 700);
+                renderMemory();
+            }
+        }
+    }
+    function resetMemory() { if (memTimeout) clearTimeout(memTimeout); memCards = initMemory(); memFlipped = null; memLock = false; memMoves = 0; renderMemory(); }
+
+    // ==================== ТРИ В РЯД ====================
+    const gems = ["🔴", "🔵", "🟢", "🟡", "🟣"];
+    let matchBoard = [], matchScore = 0, selRow = null, selCol = null, matchLock = false;
+    const MATCH3_GOAL = 1000;
+
+    function randomGem() { return gems[Math.floor(Math.random() * gems.length)]; }
+    function hasMatchAt(board, r, c) {
+        let gem = board[r][c]; if (!gem) return false;
+        let hor = 1, ver = 1;
+        for (let i = c-1; i >= 0 && board[r][i] === gem; i--) hor++;
+        for (let i = c+1; i < 6 && board[r][i] === gem; i++) hor++;
+        for (let i = r-1; i >= 0 && board[i][c] === gem; i--) ver++;
+        for (let i = r+1; i < 6 && board[i][c] === gem; i++) ver++;
+        return hor >= 3 || ver >= 3;
+    }
+    function initMatchBoard() {
+        let board = Array(6).fill().map(() => Array(6).fill().map(() => randomGem()));
+        for (let r = 0; r < 6; r++) for (let c = 0; c < 6; c++) while (hasMatchAt(board, r, c)) board[r][c] = randomGem();
+        return board;
+    }
+    function findAllMatches(board) {
+        let matches = [], marked = Array(6).fill().map(() => Array(6).fill(false));
+        for (let r = 0; r < 6; r++) { let len = 1; for (let c = 1; c <= 6; c++) { if (c < 6 && board[r][c] === board[r][c-1]) len++; else { if (len >= 3) for (let i = c-len; i < c; i++) marked[r][i] = true; len = 1; } } }
+        for (let c = 0; c < 6; c++) { let len = 1; for (let r = 1; r <= 6; r++) { if (r < 6 && board[r][c] === board[r-1][c]) len++; else { if (len >= 3) for (let i = r-len; i < r; i++) marked[i][c] = true; len = 1; } } }
+        for (let r = 0; r < 6; r++) for (let c = 0; c < 6; c++) if (marked[r][c]) matches.push([r, c]);
+        return matches;
+    }
+    function applyGravity(board) {
+        for (let c = 0; c < 6; c++) { let col = []; for (let r = 5; r >= 0; r--) if (board[r][c] !== null) col.push(board[r][c]); while (col.length < 6) col.push(randomGem()); col.reverse(); for (let r = 0; r < 6; r++) board[r][c] = col[r]; }
+    }
+    async function processMatches() {
+        let any = true, gain = 0, combo = 0;
+        while (any) {
+            let matches = findAllMatches(matchBoard);
+            if (matches.length === 0) break;
+            combo++; gain += matches.length * 10 * (1 + Math.min(combo * 0.1, 0.5));
+            for (let [r, c] of matches) matchBoard[r][c] = null;
+            applyGravity(matchBoard); renderMatch3(); await new Promise(r => setTimeout(r, 80));
+        }
+        if (gain > 0) { matchScore += Math.floor(gain); document.getElementById("match3Score").innerText = matchScore; document.getElementById("match3Progress").style.width = Math.min((matchScore / MATCH3_GOAL) * 100, 100) + "%"; if (matchScore >= MATCH3_GOAL) document.getElementById("match3Msg").innerHTML = "🏆 ПОБЕДА! 1000 ОЧКОВ! 🏆"; renderMatch3(); }
+    }
+    function renderMatch3() {
+        const grid = document.getElementById("match3Grid"); grid.innerHTML = "";
+        for (let r = 0; r < 6; r++) for (let c = 0; c < 6; c++) { const div = document.createElement("div"); div.className = "gem"; if (selRow === r && selCol === c) div.classList.add("selected"); div.textContent = matchBoard[r][c]; div.onclick = () => onGemClick(r, c); grid.appendChild(div); }
+    }
+    async function onGemClick(r, c) {
+        if (matchLock || matchScore >= MATCH3_GOAL) return;
+        if (selRow === null) { selRow = r; selCol = c; renderMatch3(); return; }
+        const r1 = selRow, c1 = selCol;
+        if (r1 === r && c1 === c) { selRow = null; selCol = null; renderMatch3(); return; }
+        if (Math.abs(r1 - r) + Math.abs(c1 - c) !== 1) { selRow = r; selCol = c; renderMatch3(); return; }
+        matchLock = true;
+        let temp = matchBoard[r1][c1]; matchBoard[r1][c1] = matchBoard[r][c]; matchBoard[r][c] = temp;
+        renderMatch3(); await new Promise(r => setTimeout(r, 100));
+        if (findAllMatches(matchBoard).length === 0) { temp = matchBoard[r1][c1]; matchBoard[r1][c1] = matchBoard[r][c]; matchBoard[r][c] = temp; renderMatch3(); }
+        else await processMatches();
+        selRow = null; selCol = null; matchLock = false;
+    }
+    function resetMatch3() { matchBoard = initMatchBoard(); matchScore = 0; selRow = null; selCol = null; document.getElementById("match3Score").innerText = "0"; document.getElementById("match3Progress").style.width = "0%"; renderMatch3(); }
+
+    // ==================== САЙМОН (SIMON SAYS) ====================
+    let sequence = [];
+    let playerSequence = [];
+    let level = 0;
+    let isPlaying = false;
+    let isPlayerTurn = false;
+    let timeoutId = null;
+    const colors = ["red", "green", "blue", "yellow"];
+    const colorElements = document.querySelectorAll(".simon-btn");
+    const simonMsg = document.getElementById("simonMsg");
+    const simonLevelSpan = document.getElementById("simonLevel");
+
+    function playSound(color) {
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const frequencies = { red: 261.63, green: 329.63, blue: 392.00, yellow: 523.25 };
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        oscillator.frequency.value = frequencies[color] || 440;
+        gainNode.gain.value = 0.2;
+        oscillator.start();
+        gainNode.gain.exponentialRampToValueAtTime(0.00001, audioContext.currentTime + 0.3);
+        oscillator.stop(audioContext.currentTime + 0.3);
+        audioContext.resume();
+    }
+
+    function animateColor(color) {
+        const btn = document.querySelector(`.simon-btn.color-${color}`);
+        if (!btn) return;
+        btn.classList.add("active");
+        playSound(color);
+        setTimeout(() => btn.classList.remove("active"), 250);
+    }
+
+    function playSequence() {
+        isPlayerTurn = false;
+        let i = 0;
+        function playNext() {
+            if (i < sequence.length) {
+                animateColor(sequence[i]);
+                i++;
+                setTimeout(playNext, 500);
+            } else {
+                isPlayerTurn = true;
+                playerSequence = [];
+                simonMsg.innerText = `🎵 Твой ход! Повтори последовательность из ${sequence.length} цветов!`;
+            }
+        }
+        playNext();
+    }
+
+    function gameOver() {
+        isPlaying = false;
+        isPlayerTurn = false;
+        simonMsg.innerText = `💀 ИГРА ОКОНЧЕНА! Ты запомнил ${level} уровней. Нажми "Начать игру"!`;
+        if (timeoutId) clearTimeout(timeoutId);
+    }
+
+    function nextLevel() {
+        level++;
+        simonLevelSpan.innerText = level;
+        const nextColor = colors[Math.floor(Math.random() * colors.length)];
+        sequence.push(nextColor);
+        simonMsg.innerText = `🎵 Уровень ${level}! Смотри и запоминай...`;
+        setTimeout(() => playSequence(), 500);
+    }
+
+    function startSimon() {
+        if (isPlaying) return;
+        sequence = [];
+        playerSequence = [];
+        level = 0;
+        isPlaying = true;
+        isPlayerTurn = false;
+        simonLevelSpan.innerText = "0";
+        if (timeoutId) clearTimeout(timeoutId);
+        nextLevel();
+    }
+
+    function onSimonClick(color) {
+        if (!isPlaying || !isPlayerTurn) {
+            simonMsg.innerText = "⏳ Подожди, сейчас не твой ход!";
+            return;
+        }
+        animateColor(color);
+        playerSequence.push(color);
+        const currentIndex = playerSequence.length - 1;
+        if (playerSequence[currentIndex] !== sequence[currentIndex]) {
+            gameOver();
+            return;
+        }
+        if (playerSequence.length === sequence.length) {
+            isPlayerTurn = false;
+            simonMsg.innerText = "✅ Правильно! Следующий уровень...";
+            timeoutId = setTimeout(() => nextLevel(), 1000);
+        }
+    }
+
+    colorElements.forEach(btn => {
+        const color = btn.dataset.color;
+        btn.onclick = () => onSimonClick(color);
+    });
+    document.getElementById("startSimon").onclick = startSimon;
+
+    // ==================== ДУРАК (сокращённая версия из предыдущего кода) ====================
+    let deck = [], playerHand = [], computerHand = [], table = [], turn = "player", waitingDefense = false, trumpSuitFool = "♠";
+    function createFullDeck() { let suits = ["♥", "♦", "♣", "♠"], values = ["6", "7", "8", "9", "10", "J", "Q", "K", "A"], deck = []; for (let s of suits) for (let v of values) deck.push(v + s); for (let i = deck.length - 1; i > 0; i--) { let j = Math.floor(Math.random() * (i + 1)); [deck[i], deck[j]] = [deck[j], deck[i]]; } return deck; }
+    function getCardValue(card) { let val = card.slice(0, -1), order = { "6": 1, "7": 2, "8": 3, "9": 4, "10": 5, "J": 6, "Q": 7, "K": 8, "A": 9 }; return order[val] || 0; }
+    function getCardSuit(card) { return card.slice(-1); }
+    function isTrumpFool(card) { return getCardSuit(card) === trumpSuitFool; }
+    function canBeat(attack, defend) { let aSuit = getCardSuit(attack), dSuit = getCardSuit(defend); if (dSuit === aSuit && getCardValue(defend) > getCardValue(attack)) return true; if (dSuit === trumpSuitFool && aSuit !== trumpSuitFool) return true; return false; }
+    function canAddCard(card) { if (table.length === 0) return true; for (let t of table) if (t.card.slice(0, -1) === card.slice(0, -1)) return true; return false; }
+    function drawCards(hand, count) { while (hand.length < 6 && deck.length > 0) hand.push(deck.pop()); }
+    function initFool() { let fullDeck = createFullDeck(); trumpSuitFool = fullDeck[fullDeck.length - 1].slice(-1); document.getElementById("trumpSuit").innerHTML = trumpSuitFool; playerHand = []; computerHand = []; for (let i = 0; i < 6; i++) { playerHand.push(fullDeck.pop()); computerHand.push(fullDeck.pop()); } deck = fullDeck; table = []; turn = "player"; waitingDefense = false; updateDeckDisplay(); renderFool(); }
+    function updateDeckDisplay() { document.getElementById("deckCount").innerText = deck.length; }
+    function renderFool() {
+        const playerDiv = document.getElementById("playerCards"); playerDiv.innerHTML = "";
+        playerHand.forEach((card, i) => { let div = document.createElement("div"); div.className = "playing-card"; if (isTrumpFool(card)) div.classList.add("trump-card"); div.textContent = card; div.onclick = () => onPlayerCardClick(i); playerDiv.appendChild(div); });
+        document.getElementById("playerCount").innerText = playerHand.length;
+        const compDiv = document.getElementById("computerCards"); compDiv.innerHTML = "";
+        for (let i = 0; i < computerHand.length; i++) { let div = document.createElement("div"); div.className = "playing-card"; div.textContent = "?"; div.style.background = "#2c3e50"; div.style.color = "#ffd966"; compDiv.appendChild(div); }
+        document.getElementById("computerCount").innerText = computerHand.length;
+        const tableDiv = document.getElementById("tableCards"); tableDiv.innerHTML = "";
+        table.forEach(t => { let div = document.createElement("div"); div.className = "table-card"; if (t.defended) div.classList.add("defended"); div.textContent = t.card; tableDiv.appendChild(div); });
+        document.getElementById("attackBtn").disabled = turn !== "player" || waitingDefense;
+        document.getElementById("defendBtn").disabled = turn !== "player" || !waitingDefense;
+        document.getElementById("takeBtn").disabled = turn !== "player" || !waitingDefense;
+        updateDeckDisplay();
+        if (playerHand.length === 0 && deck.length === 0) document.getElementById("foolMsg").innerText = "🏆 ПОБЕДА!";
+        else if (computerHand.length === 0 && deck.length === 0) document.getElementById("foolMsg").innerText = "💀 Вы проиграли!";
+        else if (turn === "player" && !waitingDefense) document.getElementById("foolMsg").innerText = `Ваш ход! Козырь: ${trumpSuitFool}`;
+        else if (turn === "player" && waitingDefense) document.getElementById("foolMsg").innerText = `Защищайтесь! Козырь: ${trumpSuitFool}`;
+    }
+    function afterBattle() { if (table.length === 0) { drawCards(playerHand, 6); drawCards(computerHand, 6); renderFool(); } checkGameEnd(); }
+    function endTurn(nextTurn) { turn = nextTurn; waitingDefense = false; afterBattle(); renderFool(); if (turn === "computer" && computerHand.length > 0) setTimeout(() => computerTurn(), 600); }
+    function onPlayerCardClick(idx) { if (turn !== "player") return; let card = playerHand[idx]; if (!waitingDefense) { if (canAddCard(card)) { playerHand.splice(idx, 1); table.push({ card: card, defended: false }); waitingDefense = true; renderFool(); setTimeout(() => computerDefend(), 500); } else document.getElementById("foolMsg").innerText = "❌ Можно подкидывать только карты того же номинала!"; } else { let attackCard = table.find(t => !t.defended); if (attackCard && canBeat(attackCard.card, card)) { playerHand.splice(idx, 1); attackCard.defended = true; waitingDefense = false; renderFool(); if (table.every(t => t.defended)) { table = []; endTurn("player"); } else endTurn("player"); } else document.getElementById("foolMsg").innerText = `❌ Нужна старшая карта той же масти или козырь ${trumpSuitFool}!`; } checkGameEnd(); }
+    function computerDefend() { if (!waitingDefense || turn !== "player") return; let attackCard = table.find(t => !t.defended); if (!attackCard) return; let bestIdx = -1; for (let i = 0; i < computerHand.length; i++) if (canBeat(attackCard.card, computerHand[i])) { bestIdx = i; break; } if (bestIdx !== -1) { computerHand.splice(bestIdx, 1); attackCard.defended = true; waitingDefense = false; renderFool(); if (table.every(t => t.defended)) { table = []; endTurn("player"); } else endTurn("computer"); } else { for (let t of table) computerHand.push(t.card); table = []; waitingDefense = false; endTurn("computer"); } renderFool(); checkGameEnd(); }
+    function computerTurn() { if (turn !== "computer") return; let attackCard = null; for (let card of computerHand) if (canAddCard(card)) { attackCard = card; break; } if (attackCard) { let idx = computerHand.indexOf(attackCard); computerHand.splice(idx, 1); table.push({ card: attackCard, defended: false }); waitingDefense = true; turn = "player"; renderFool(); } else { table = []; endTurn("player"); } checkGameEnd(); }
+    function playerTake() { if (turn !== "player" || !waitingDefense) return; for (let t of table) playerHand.push(t.card); table = []; waitingDefense = false; endTurn("computer"); renderFool(); }
+    function playerAttack() { if (turn !== "player" || waitingDefense) return; if (table.length > 0) { let canAdd = playerHand.some(card => canAddCard(card)); if (!canAdd) { table = []; endTurn("computer"); } else document.getElementById("foolMsg").innerText = "Выберите карту для подкидывания!"; } else document.getElementById("foolMsg").innerText = "Выберите карту для атаки!"; }
+    function checkGameEnd() { if (playerHand.length === 0 && deck.length === 0) { document.getElementById("attackBtn").disabled = true; document.getElementById("defendBtn").disabled = true; document.getElementById("takeBtn").disabled = true; } else if (computerHand.length === 0 && deck.length === 0) { document.getElementById("attackBtn").disabled = true; document.getElementById("defendBtn").disabled = true; document.getElementById("takeBtn").disabled = true; } }
+    function resetFool() { initFool(); }
+
+    // ==================== ПЕРЕКЛЮЧЕНИЕ ====================
+    function switchGame(game) {
+        document.getElementById("memoryPanel").classList.add("hidden");
+        document.getElementById("match3Panel").classList.add("hidden");
+        document.getElementById("simonPanel").classList.add("hidden");
+        document.getElementById("foolPanel").classList.add("hidden");
+        document.getElementById(game + "Panel").classList.remove("hidden");
+        document.querySelectorAll(".tab-btn").forEach(btn => { if (btn.dataset.game === game) btn.classList.add("active"); else btn.classList.remove("active"); });
+    }
+
+    // Инициализация
+    memCards = initMemory(); renderMemory();
+    matchBoard = initMatchBoard(); renderMatch3();
+    initFool();
+
+    document.getElementById("resetMemory").onclick = resetMemory;
+    document.getElementById("resetMatch3").onclick = resetMatch3;
+    document.getElementById("resetFool").onclick = resetFool;
+    document.getElementById("attackBtn").onclick = playerAttack;
+    document.getElementById("defendBtn").onclick = () => { if(waitingDefense && turn==="player") document.getElementById("foolMsg").innerText = "Выберите карту для защиты!"; };
+    document.getElementById("takeBtn").onclick = playerTake;
+    document.querySelectorAll(".tab-btn").forEach(btn => { btn.onclick = () => switchGame(btn.dataset.game); });
+</script>
+</body>
+</html>
